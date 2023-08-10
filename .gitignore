@@ -1,3 +1,13 @@
+#ignore all files in the directory
+*/*
+#except the following
+# HDS_standalone folder
+!HDS_standalone_code/*.f90
+!HDS_standalone_code/makefile
+!HDS_standalone_code/*.csv
+!HDS_standalone_code/*.R
+!HDS_standalone_code/.vscode
+
 # Prerequisites
 *.d
 
