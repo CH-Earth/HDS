@@ -1,6 +1,8 @@
 #ignore all files in the directory
 */*
 #except the following
+#readme file
+README.md
 # HDS_standalone folder
 !HDS_standalone_code/*.f90
 !HDS_standalone_code/makefile
