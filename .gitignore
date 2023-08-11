@@ -2,7 +2,7 @@
 */*
 #except the following
 #readme file
-README.md
+!README.md
 # HDS_standalone folder
 !HDS_standalone_code/*.f90
 !HDS_standalone_code/makefile
