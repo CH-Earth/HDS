@@ -6,9 +6,10 @@ README.md
 # HDS_standalone folder
 !HDS_standalone_code/*.f90
 !HDS_standalone_code/makefile
-!HDS_standalone_code/*.csv
-!HDS_standalone_code/*.R
-!HDS_standalone_code/.vscode
+!HDS_standalone_code/SCRB_1subbasin_depressions_info.csv
+!HDS_standalone_code/syntheticForcing.csv
+!HDS_standalone_code/HDS_output.csv
+
 
 # Prerequisites
 *.d
