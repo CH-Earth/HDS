@@ -8,4 +8,8 @@ MODULE type_HDS
  INTEGER,      PARAMETER :: SP = KIND(1.0)
  INTEGER,      PARAMETER :: DP = KIND(1.0D0)
  INTEGER,      PARAMETER :: rkind = SP
+ ! constants
+ real(rkind),  parameter :: zero = 0.0_rkind
+ real(rkind),  parameter :: one  = 1.0_rkind
+ real(rkind),  parameter :: two  = 2.0_rkind
 END MODULE type_HDS

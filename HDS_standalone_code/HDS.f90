@@ -8,26 +8,27 @@ USE type_HDS
         ! initialize at capacity minus depth of evaporation
         implicit none
         !subroutine arguments
-        real(rkind),  intent(in) :: depArea !depression area [m2]
-        real(rkind),  intent(in) :: depVol !depression volume [m3]
-        real(rkind),  intent(in) :: totEvap ! total evaporation [m] to be subtracted from the ponded water
-        real(rkind),  intent(in) :: volFrac ! volume fraction [-]. Used to fill the depressions using percentage (i.e., 50% full)
-        real(rkind),  intent(in) :: p ! shape of the slope profile [-]. Exponent for calculating the fractional wet area
-        real(rkind),  intent(out) :: pondVol ! pond volume [m3]
+        real(rkind),  intent(in)  :: depArea   ! depression area [m2]
+        real(rkind),  intent(in)  :: depVol    ! depression volume [m3]
+        real(rkind),  intent(in)  :: totEvap   ! total evaporation [m] to be subtracted from the ponded water
+        real(rkind),  intent(in)  :: volFrac   ! volume fraction [-]. Used to fill the depressions using percentage (i.e., 50% full)
+        real(rkind),  intent(in)  :: p         ! shape of the slope profile [-]. Exponent for calculating the fractional wet area
+        real(rkind),  intent(out) :: pondVol   ! pond volume [m3]
         ! local variables
         real(rkind)  ::  depHeight ! depression height [m]
         real(rkind)  ::  pondHeight ! height of the water level in depression [m]
+
         ! estimate the maximum depth of the depression
-        depHeight = depVol*(1.0_rkind  + 2.0_rkind /p)/depArea  ! depression height [m]
-        !ixWater   = where(depHeight gt totEvap, nWater)
+        depHeight = depVol*(one  + two /p)/depArea  ! depression height [m]
+
         !subtract ET from ponded water if ET > 0
-        if(totEvap .gt. 0.0_rkind ) then
+        if(totEvap .gt. zero ) then
+
             ! estimate the height of the water level after evaporation
-            pondHeight = max(depHeight - totEvap, 0.0_rkind ) !0.0_rkind  !replicate(0.d, nDepressions)
-            !if(depHeight gt 0)then pondHeight[ixWater] = depHeight[ixWater] - totEvap
+            pondHeight = max(depHeight - totEvap, zero ) !zero  !replicate(0.d, nDepressions)
 
             ! get the volume of water in the depression
-            pondVol = depVol*((pondHeight/depHeight)**(1.0_rkind  + 2.0_rkind /p))
+            pondVol = depVol*((pondHeight/depHeight)**(one  + two /p))
 
         else !use volume frac to get initial pondVol
             pondVol = depVol*volFrac
@@ -68,7 +69,7 @@ USE type_HDS
         !nDepressions = n_elements(pondVol)
 
         ! initilaize the contributing area
-        !conArea = 0.0_rkind  !replicate(0.d, nDepressions)
+        !conArea = zero  !replicate(0.d, nDepressions)
 
         ! loop through depressions
         !for iDep=0,nDepressions-1 do begin
@@ -180,19 +181,19 @@ USE type_HDS
                 endif
 
                 ! update constraints
-                if(xRes .gt. 0.0_rkind ) xMin=xVol
-                if(xRes .lt. 0.0_rkind ) xMax=xVol
+                if(xRes .gt. zero ) xMin=xVol
+                if(xRes .lt. zero ) xMax=xVol
 
                 ! special case where xMax is too small
-                if(xRes .gt. 0.0_rkind  .and. xVol .gt. 0.99*xMax) xMax = xMax*10.0_rkind
+                if(xRes .gt. zero  .and. xVol .gt. 0.99*xMax) xMax = xMax*10.0_rkind
 
                 ! update state (pondVol)
-                xVol = xVol + xRes / (1.0_rkind  - dgdv*dt)
+                xVol = xVol + xRes / (one  - dgdv*dt)
 
                 ! use bi-section if violated constraints
                 if(xVol .lt. xMin .or. xVol .gt. xMax) xVol=(xMin+xMax)/2.0_rkind
-                !if(xVol /= xVol) xVol = 0.0_rkind  !NaN check MIA (does not work)
-                !xVol = max(xVol, 0.0_rkind ) !prevent -ve values of xVol
+                !if(xVol /= xVol) xVol = zero  !NaN check MIA (does not work)
+                !xVol = max(xVol, zero ) !prevent -ve values of xVol
                 !print, iter, pondVol, xVol, depArea, depVol, Q_di, Q_det, Q_dix, Q_do, xRes, xMin, xMax
 
                 ! assign failure
@@ -208,7 +209,7 @@ USE type_HDS
         if(solution .eq. shortSubsteps .or. failure .eq. 1)then
 
             ! define length of the substeps
-            dtSub = 1.0_rkind  / real(nSub)
+            dtSub = one  / real(nSub)
 
             ! loop through substeps
             do iSub=1,nSub
@@ -267,12 +268,12 @@ USE type_HDS
         ms = 0.0001_rkind
 
         ! compute the pond area
-        pondArea = depArea*((pondVol/depVol)**(2.0_rkind /(p + 2.0_rkind )))
+        pondArea = depArea*((pondVol/depVol)**(two /(p + two )))
 
         ! get the forcing
         rCoef   = 0.050_rkind ! (runoff coefficient)
-        pInput  = pRate/1000.0_rkind  !mm -> m
-        qInput  = qSeas/1000.0_rkind  + rCoef*pRate/1000.0_rkind  ! surface runoff !mm -> m
+        pInput  = pRate /1000.0_rkind  !mm -> m
+        qInput  = qSeas /1000.0_rkind  + rCoef*pRate/1000.0_rkind  ! surface runoff !mm -> m
         eLosses = etPond/1000.0_rkind  ! evaporation losses mm -> m
 
         ! get volume fluxes from the host land model
@@ -291,10 +292,10 @@ USE type_HDS
 
         ! compute the outflow from the meta depression
         ! smoothing pondVol calculation ! (eq 24)
-        vPrime = 0.50*(vMin + pondVol + sqrt((pondVol-vMin)**2.0_rkind  + ms)) ! (eq 24)
+        vPrime = 0.50*(vMin + pondVol + sqrt((pondVol-vMin)**two  + ms)) ! (eq 24)
         ! calculate contributing fraction !(eq 25)
-        cFrac  = 1.0_rkind  - ((depVol - vPrime)/(depVol - vMin))**b !(eq 25)
-        cFrac = max(cFrac, 0.0_rkind ) !prevent -ve values MIA
+        cFrac  = one  - ((depVol - vPrime)/(depVol - vMin))**b !(eq 25)
+        cFrac = max(cFrac, zero ) !prevent -ve values MIA
         ! calculate outlfow (eq 16)
         Q_do   = cFrac*Q_di
 
@@ -303,13 +304,13 @@ USE type_HDS
 
         ! compute derivate in pond area w.r.t. pond volume
         vTry = max(1.0e-12_rkind, pondVol)  ! avoid divide by zero
-        dadv = ((2.0_rkind *depArea)/((p + 2.0_rkind )*depVol)) * ((vTry/depVol)**(-p/(p + 2.0_rkind )))
+        dadv = ((two *depArea)/((p + two )*depVol)) * ((vTry/depVol)**(-p/(p + two )))
 
         ! compute derivatives in volume fluxes w.r.t. pond volume (meta depression)
-        dpdv = 0.50*((pondVol-vMin)/sqrt((pondVol-vMin)**2.0_rkind  + ms) + 1.0_rkind )  ! max smoother
-        dfdv = dpdv*(b*(depVol - pondVol)**(b - 1.0_rkind ))/((depVol - vMin)**b)  ! contributing fraction (note chain rule)
+        dpdv = 0.50*((pondVol-vMin)/sqrt((pondVol-vMin)**two  + ms) + one )  ! max smoother
+        dfdv = dpdv*(b*(depVol - pondVol)**(b - one ))/((depVol - vMin)**b)  ! contributing fraction (note chain rule)
         didv = dadv*(pInput - qInput)
-        dgdv = didv*(1.0_rkind  - cFrac) - dfdv*Q_di - dadv*eLosses - tau
+        dgdv = didv*(one  - cFrac) - dfdv*Q_di - dadv*eLosses - tau
 
         !write(*,*) g, pondVol, dadv, dpdv, dfdv, didv, dgdv
 

@@ -50,7 +50,7 @@ program main_HDS
         ! subbasinID	depression_area_m2	depression_volume_m3	total_catchment_m2
         read(1,*) dummy, depressionArea(ibasin), depressionVol(ibasin), catchmentArea(ibasin)
         !calculate the upslope (upland) area of each depression
-        upslopeArea(ibasin) = max(catchmentArea(ibasin) - depressionArea (ibasin), 0.0_rkind )
+        upslopeArea(ibasin) = max(catchmentArea(ibasin) - depressionArea (ibasin), zero )
     end do !loop for subbasin
     close(1)
 !    write(*,*) depressionArea, depressionVol, catchmentArea, upslopeArea
@@ -69,21 +69,21 @@ program main_HDS
         ! t	qSeas	pRate	etPond
         read(1,*) dummy, qSeas(itime), pRate(itime), etPond(itime) !all in mm/day
     end do !loop for time
-    dt = 1.0_rkind  !time steps in days (based on the synthetic data)
+    dt = one  !time steps in days (based on the synthetic data)
     close(1)
 
     ! define parameters (for SCRB)
     p   = 1.72  ! shape of the slope profile [-]
     b   = 1.5   ! shape of the fractional contributing area curve [-]
     tau = 0.01_rkind  ! time constant linear reservoir [days-1]
-    vMin(:) = 0.0_rkind  ! model parameter, will be updated later
+    vMin(:) = zero  ! model parameter, will be updated later
     ! initialize pond volume using ET (set to zero to initialize using volume fraction)
-    totEvap = 0.0_rkind  ! m
+    totEvap = zero  ! m
     !initialize variables (all variables will be updated by the model)
     volFrac = 0.2 ! assume depressions are 20% full at time = 0 (initial condition)
     conArea = 0.2 ! assume contributing area is 20% at time = 0 (initial condition)
     areaFrac = 0.2 ! assume areafrac 20% at time = 0 (initial condition)
-    pondVol = 0.0_rkind  !updated inside the initialization subroutine
+    pondVol = zero  !updated inside the initialization subroutine
 
     !conArea = dblarr(nDepressions) at time = 0 (initial condition)
     !loop though subbasins to initialize the variables
