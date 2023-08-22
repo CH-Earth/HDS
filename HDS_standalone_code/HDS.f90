@@ -22,13 +22,13 @@ USE type_HDS
         depHeight = depVol*(one + two/p)/depArea  ! depression height [m]
 
         !subtract ET from ponded water if ET > 0
-        if(totEvap .gt. zero ) then
+        if(totEvap > zero) then
 
             ! estimate the height of the water level after evaporation
             pondHeight = max(depHeight - totEvap, zero)
 
             ! get the volume of water in the depression
-            pondVol = depVol*((pondHeight/depHeight)**(one  + two /p))
+            pondVol = depVol*((pondHeight/depHeight)**(one  + two/p))
 
         else !use volume frac to get initial pondVol
             pondVol = depVol*volFrac
@@ -122,7 +122,7 @@ USE type_HDS
         ! ---------- option 1: implicit Euler ----------
 
         ! check if implicit Euler is desired
-        if(solution .eq. implicitEuler)then
+        if(solution == implicitEuler)then
 
             ! initialize brackets
             xMin = zero
@@ -138,26 +138,26 @@ USE type_HDS
                 xRes = (pondVol + g*dt) - xVol
 
                 ! check convergence
-                if(iter .gt. 1 .and. abs(xRes) .lt. xConv)then
+                if(iter > 1 .and. abs(xRes) < xConv)then
                     failure=.false.
                     exit
                 endif
 
                 ! update constraints
-                if(xRes .gt. zero ) xMin=xVol
-                if(xRes .lt. zero ) xMax=xVol
+                if(xRes > zero) xMin=xVol
+                if(xRes < zero) xMax=xVol
 
                 ! special case where xMax is too small
-                if(xRes .gt. zero  .and. xVol .gt. 0.99*xMax) xMax = xMax*10.0_rkind
+                if(xRes > zero  .and. xVol > 0.99*xMax) xMax = xMax*10.0_rkind
 
                 ! update state (pondVol)
                 xVol = xVol + xRes / (one  - dgdv*dt)
 
                 ! use bi-section if violated constraints
-                if(xVol .lt. xMin .or. xVol .gt. xMax) xVol=(xMin+xMax)/2.0_rkind
+                if(xVol < xMin .or. xVol > xMax) xVol=(xMin+xMax)/2.0_rkind
 
                 ! assign failure
-                failure = (iter .eq. nIter)
+                failure = (iter == nIter)
 
             enddo ! iterating
 
@@ -166,7 +166,7 @@ USE type_HDS
         ! ---------- option 2: short substeps ----------
 
         ! check if short substeps are desired
-        if(solution .eq. shortSubsteps .or. failure)then
+        if(solution == shortSubsteps .or. failure)then
 
             ! define length of the substeps
             dtSub = one  / real(nSub)
@@ -237,13 +237,13 @@ USE type_HDS
         Q_dix = tau*pondVol
 
         ! update the minimum parameter (force hysteresis)
-        if(iter .eq. 1) then
-            if(Q_di .lt. Q_det+Q_dix) vmin = pondVol
+        if(iter == 1) then
+            if(Q_di < Q_det+Q_dix) vmin = pondVol
         endif
 
         ! compute the outflow from the meta depression
         ! smoothing pondVol calculation ! (eq 24)
-        vPrime = 0.50*(vMin + pondVol + sqrt((pondVol-vMin)**two  + ms)) ! (eq 24)
+        vPrime = half*(vMin + pondVol + sqrt((pondVol-vMin)**two  + ms)) ! (eq 24)
         ! calculate contributing fraction !(eq 25)
         cFrac  = one  - ((depVol - vPrime)/(depVol - vMin))**b !(eq 25)
         cFrac = max(cFrac, zero ) !prevent -ve values MIA
@@ -258,7 +258,7 @@ USE type_HDS
         dadv = ((two *depArea)/((p + two )*depVol)) * ((vTry/depVol)**(-p/(p + two )))
 
         ! compute derivatives in volume fluxes w.r.t. pond volume (meta depression)
-        dpdv = 0.50*((pondVol-vMin)/sqrt((pondVol-vMin)**two  + ms) + one )  ! max smoother
+        dpdv = half*((pondVol-vMin)/sqrt((pondVol-vMin)**two  + ms) + one )  ! max smoother
         dfdv = dpdv*(b*(depVol - pondVol)**(b - one ))/((depVol - vMin)**b)  ! contributing fraction (note chain rule)
         didv = dadv*(pInput - qInput)
         dgdv = didv*(one  - cFrac) - dfdv*Q_di - dadv*eLosses - tau

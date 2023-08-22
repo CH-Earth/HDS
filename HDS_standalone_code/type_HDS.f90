@@ -12,6 +12,7 @@ MODULE type_HDS
  INTEGER,      PARAMETER :: rkind = SP
  ! useful shortcuts
  real(rkind),  parameter :: zero      = 0.0_rkind
+ real(rkind),  parameter :: half      = 0.5_rkind
  real(rkind),  parameter :: one       = 1.0_rkind
  real(rkind),  parameter :: two       = 2.0_rkind
  real(rkind),  parameter :: verySmall = 1.0e-12_rkind
