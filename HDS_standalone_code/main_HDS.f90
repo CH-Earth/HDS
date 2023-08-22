@@ -9,29 +9,29 @@ program main_HDS
     implicit none
     character(len=100) :: fName ! file name that contains depressional storage information
     !character(len=100) :: trash ! reads extra (unneeded) variables
-    real :: dummy               ! dummy variable used to read extra data not included in the analysis
+    real(rkind)  ::  dummy               ! dummy variable used to read extra data not included in the analysis
     integer :: GetNumberOfLines !function to get the number of lines of the input file
     integer :: nlines ! number of lines of the input file
     integer :: ibasin, itime ! loop counter for basin and timeseries
     integer :: nbasin, ntimesteps ! number of sub-basins and timesteps included in the analysis
-    real, allocatable :: depressionArea(:)  ! depression area in m^2
-    real, allocatable :: depressionVol(:)   ! depression volume in m^3
-    real, allocatable :: catchmentArea(:)   ! Catchment area of the depression in m^2
-    real, allocatable :: upslopeArea(:)   ! upslope (upland) area of the depression in m^2 = catchmentArea - depressionArea
-    real, allocatable :: qSeas(:), pRate(:), etPond(:)     ! forcing data = runoff, precipitation, ET [mm/day]
-    real :: dt ! time step [days]
-    real :: p ! shape of the slope profile [-]. Exponent for calculating the fractional wet area
-    real :: b ! shape of the fractional contributing area curve [-]
-    real :: tau ! time constant linear reservoir [days-1] for infiltration calculations
-    !real :: seed ! seed number used for generating stochastic simulations
-    real :: totEvap ! total evaporation for initialization of the pond [m]
-    real, allocatable :: conArea(:) ! contributing area fraction per subbasin [-]
-    real, allocatable :: volFrac(:) !volume fraction per subbasin [-]
-    real, allocatable :: areaFrac(:)  !area fraction per subbasin [-]
-    real, allocatable :: pondVol(:)  !pond volume [m3] [-]
-    real, allocatable :: vMin(:)  ! minimum pond volume below which contributing area is zero [m3]
-    real :: pondVol0 !, pondVol ! initial and final pond volume [m3]
-    !real :: vMin     ! minimum pond volume below which contributing area is zero [m3]
+    real(rkind),  allocatable :: depressionArea(:)  ! depression area in m^2
+    real(rkind),  allocatable :: depressionVol(:)   ! depression volume in m^3
+    real(rkind),  allocatable :: catchmentArea(:)   ! Catchment area of the depression in m^2
+    real(rkind),  allocatable :: upslopeArea(:)   ! upslope (upland) area of the depression in m^2 = catchmentArea - depressionArea
+    real(rkind),  allocatable :: qSeas(:), pRate(:), etPond(:)     ! forcing data = runoff, precipitation, ET [mm/day]
+    real(rkind)  ::  dt ! time step [days]
+    real(rkind)  ::  p ! shape of the slope profile [-]. Exponent for calculating the fractional wet area
+    real(rkind)  ::  b ! shape of the fractional contributing area curve [-]
+    real(rkind)  ::  tau ! time constant linear reservoir [days-1] for infiltration calculations
+    !real(rkind)  ::  seed ! seed number used for generating stochastic simulations
+    real(rkind)  ::  totEvap ! total evaporation for initialization of the pond [m]
+    real(rkind),  allocatable :: conArea(:) ! contributing area fraction per subbasin [-]
+    real(rkind),  allocatable :: volFrac(:) !volume fraction per subbasin [-]
+    real(rkind),  allocatable :: areaFrac(:)  !area fraction per subbasin [-]
+    real(rkind),  allocatable :: pondVol(:)  !pond volume [m3] [-]
+    real(rkind),  allocatable :: vMin(:)  ! minimum pond volume below which contributing area is zero [m3]
+    real(rkind)  ::  pondVol0 !, pondVol ! initial and final pond volume [m3]
+    !real(rkind)  ::  vMin     ! minimum pond volume below which contributing area is zero [m3]
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !read inputs
@@ -50,7 +50,7 @@ program main_HDS
         ! subbasinID	depression_area_m2	depression_volume_m3	total_catchment_m2
         read(1,*) dummy, depressionArea(ibasin), depressionVol(ibasin), catchmentArea(ibasin)
         !calculate the upslope (upland) area of each depression
-        upslopeArea(ibasin) = max(catchmentArea(ibasin) - depressionArea (ibasin), 0.0)
+        upslopeArea(ibasin) = max(catchmentArea(ibasin) - depressionArea (ibasin), 0.0_rkind )
     end do !loop for subbasin
     close(1)
 !    write(*,*) depressionArea, depressionVol, catchmentArea, upslopeArea
@@ -69,22 +69,22 @@ program main_HDS
         ! t	qSeas	pRate	etPond
         read(1,*) dummy, qSeas(itime), pRate(itime), etPond(itime) !all in mm/day
     end do !loop for time
-    dt = 1.0 !time steps in days (based on the synthetic data)
+    dt = 1.0_rkind  !time steps in days (based on the synthetic data)
     close(1)
 
     ! define parameters (for SCRB)
     p   = 1.72  ! shape of the slope profile [-]
     b   = 1.5   ! shape of the fractional contributing area curve [-]
-    tau = 0.01  ! time constant linear reservoir [days-1]
-    vMin(:) = 0.0 ! model parameter, will be updated later
+    tau = 0.01_rkind  ! time constant linear reservoir [days-1]
+    vMin(:) = 0.0_rkind  ! model parameter, will be updated later
     ! initialize pond volume using ET (set to zero to initialize using volume fraction)
-    totEvap = 0.0 ! m
+    totEvap = 0.0_rkind  ! m
     !initialize variables (all variables will be updated by the model)
     volFrac = 0.2 ! assume depressions are 20% full at time = 0 (initial condition)
     conArea = 0.2 ! assume contributing area is 20% at time = 0 (initial condition)
     areaFrac = 0.2 ! assume areafrac 20% at time = 0 (initial condition)
-    pondVol = 0.0 !updated inside the initialization subroutine
-    
+    pondVol = 0.0_rkind  !updated inside the initialization subroutine
+
     !conArea = dblarr(nDepressions) at time = 0 (initial condition)
     !loop though subbasins to initialize the variables
     do ibasin = 1, nbasin
@@ -101,7 +101,7 @@ program main_HDS
     ! create output file
     !===============================
     open(unit=10, file='HDS_output.csv', status='unknown', action='write')
-    
+
     write(10,*) 'time, basinID, pondVol, volFrac, conArea, vMin, '
 
     !===============================
@@ -112,10 +112,10 @@ program main_HDS
         write(*,*) 'time step = ', itime
         do ibasin = 1, nbasin
             ! run the meta depression model for a single depression
-  
+
             call runDepression(pondVol(ibasin), qSeas(itime), pRate(itime), etPond(itime), depressionArea(ibasin), depressionVol(ibasin), upslopeArea(ibasin), &
                                 p, tau, b, vMin(ibasin), dt, volFrac(ibasin), conArea(ibasin))
-            
+
             ! save information (bookkeeping for next time step)
             !volFrac(ibasin)       = fVol
             !conArea(ibasin)      = fArea
