@@ -5,21 +5,18 @@ DEBUG_FCFLAGS = -g -O0
 RELEASE_FCFLAGS = -O3
 
 # Source files
-SRC_MAIN = main_HDS.f90
-SRC_MODULE = HDS.f90
+hds_src= \
+        HDS.f90
 
-# Object files
-OBJ_MAIN = $(SRC_MAIN:.f90=.o)
-OBJ_MODULE = $(SRC_MODULE:.f90=.o)
-
-# Module file
-MOD_FILE = hds.mod
+# model driver
+hds_drv = main_HDS.f90
 
 # Executable name
-EXECUTABLE = HDS_program
+hds_exe = HDS_program
+path_exe = ../bin/
 
 # Main target
-all: release
+all: release compile link clean install
 
 debug: COMMON_FCFLAGS += $(DEBUG_FCFLAGS)
 debug: $(EXECUTABLE)
@@ -27,15 +24,20 @@ debug: $(EXECUTABLE)
 release: COMMON_FCFLAGS += $(RELEASE_FCFLAGS)
 release: $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJ_MAIN) $(OBJ_MODULE)
-	$(FC) $(COMMON_FCFLAGS) -o $@ $(OBJ_MAIN) $(OBJ_MODULE)
-	rm -f $(OBJ_MAIN) $(OBJ_MODULE) $(MOD_FILE)
+# compile
+compile:
+	$(FC) $(COMMON_FCFLAGS) -c $(hds_src) $(hds_drv) \
+	$(INCLUDES)
 
-%.o: %.f90 $(MOD_FILE)
-	$(FC) $(COMMON_FCFLAGS) -c $<
-
-$(MOD_FILE): $(SRC_MODULE)
-	$(FC) $(COMMON_FCFLAGS) -c $(SRC_MODULE)
+# link routines
+link:
+	$(FC) -g *.o -o $(hds_exe)
 
 clean:
-	rm -f $(EXECUTABLE) $(OBJ_MAIN) $(OBJ_MODULE) $(MOD_FILE)
+	rm -f *.o
+	rm -f *.mod
+
+install:
+	@mkdir -p $(path_exe)
+	@mv $(hds_exe) $(path_exe)
+	$(info $(hds_exe) successfully installed in $(path_exe))
