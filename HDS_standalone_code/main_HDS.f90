@@ -1,19 +1,21 @@
 program main_HDS
+
     ! A modified version (v2) of the Hysteretic Depressional Storage (HDS) model to simulate prairie fill and spill mechanism.
     ! The original HDS (v1) was based on the equations listed in Ahmed et al. (2023), doi: https://doi.org/10.1016/j.envsoft.2023.105769.
     ! This version of HDS (v2) is revised based on the equations presented by Clark and Shook (2022), doi: https://doi.org/10.1029/2022WR032694,
-    ! which are more numerically effecient than the ones proposed in HDS (v1)
+    ! which is cleaner and more robust than the one proposed in HDS (v1)
 
-    use HDS
+    USE type_HDS
+    USE HDS
 
     implicit none
+
     character(len=100) :: fName ! file name that contains depressional storage information
-    !character(len=100) :: trash ! reads extra (unneeded) variables
     real(rkind)  ::  dummy               ! dummy variable used to read extra data not included in the analysis
-    integer :: GetNumberOfLines !function to get the number of lines of the input file
-    integer :: nlines ! number of lines of the input file
-    integer :: ibasin, itime ! loop counter for basin and timeseries
-    integer :: nbasin, ntimesteps ! number of sub-basins and timesteps included in the analysis
+    integer(i4b)  ::  GetNumberOfLines !function to get the number of lines of the input file
+    integer(i4b)  ::  nlines ! number of lines of the input file
+    integer(i4b)  ::  ibasin, itime ! loop counter for basin and timeseries
+    integer(i4b)  ::  nbasin, ntimesteps ! number of sub-basins and timesteps included in the analysis
     real(rkind),  allocatable :: depressionArea(:)  ! depression area in m^2
     real(rkind),  allocatable :: depressionVol(:)   ! depression volume in m^3
     real(rkind),  allocatable :: catchmentArea(:)   ! Catchment area of the depression in m^2
@@ -136,9 +138,10 @@ end program
 ! ======================================================
 ! get the number of files
 function GetNumberOfLines(filename) result(num_lines)
+    USE type_HDS
     implicit none
     character(len=100), intent(in) :: filename
-    integer :: num_lines, i
+    integer(i4b)  ::  num_lines, i
     character(1000) :: line
 
     ! Open the file
