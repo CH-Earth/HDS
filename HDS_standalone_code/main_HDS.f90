@@ -6,170 +6,180 @@ program main_HDS
     ! which is cleaner and more robust than the one proposed in HDS (v1)
 
     USE type_HDS
-    USE HDS
+    USE ascii_util, only: read_csv
 
     implicit none
 
-    character(len=100) :: fName ! file name that contains depressional storage information
-    real(rkind)  ::  dummy               ! dummy variable used to read extra data not included in the analysis
-    integer(i4b)  ::  GetNumberOfLines !function to get the number of lines of the input file
-    integer(i4b)  ::  nlines ! number of lines of the input file
-    integer(i4b)  ::  ibasin, itime ! loop counter for basin and timeseries
-    integer(i4b)  ::  nbasin, ntimesteps ! number of sub-basins and timesteps included in the analysis
-    real(rkind),  allocatable :: depressionArea(:)  ! depression area in m^2
-    real(rkind),  allocatable :: depressionVol(:)   ! depression volume in m^3
-    real(rkind),  allocatable :: catchmentArea(:)   ! Catchment area of the depression in m^2
-    real(rkind),  allocatable :: upslopeArea(:)   ! upslope (upland) area of the depression in m^2 = catchmentArea - depressionArea
-    real(rkind),  allocatable :: qSeas(:), pRate(:), etPond(:)     ! forcing data = runoff, precipitation, ET [mm/day]
-    real(rkind)  ::  dt ! time step [days]
-    real(rkind)  ::  p ! shape of the slope profile [-]. Exponent for calculating the fractional wet area
-    real(rkind)  ::  b ! shape of the fractional contributing area curve [-]
-    real(rkind)  ::  tau ! time constant linear reservoir [days-1] for infiltration calculations
-    !real(rkind)  ::  seed ! seed number used for generating stochastic simulations
-    real(rkind)  ::  totEvap ! total evaporation for initialization of the pond [m]
-    real(rkind),  allocatable :: conArea(:) ! contributing area fraction per subbasin [-]
-    real(rkind),  allocatable :: volFrac(:) !volume fraction per subbasin [-]
-    real(rkind),  allocatable :: areaFrac(:)  !area fraction per subbasin [-]
-    real(rkind),  allocatable :: pondVol(:)  !pond volume [m3] [-]
-    real(rkind),  allocatable :: vMin(:)  ! minimum pond volume below which contributing area is zero [m3]
-    real(rkind)  ::  pondVol0 !, pondVol ! initial and final pond volume [m3]
-    !real(rkind)  ::  vMin     ! minimum pond volume below which contributing area is zero [m3]
+    ! filenames
+    character(len=100)               :: fName_spatial        ! file name that contains depressional storage information
+    character(len=100)               :: fName_forcing        ! file name that contains time series inputs
+    ! information in the spatial csv file
+    integer(i4b),       parameter    :: ixCatArea=1,ixDepArea=2,ixDepVol=3    ! index of variables in data structures
+    character(len=128), parameter    :: s1='total_catchment_m2', s2='depression_area_m2', s3='depression_volume_m3'
+    ! information in the forcing csv file
+    integer(i4b),       parameter    :: ixP=1,ixET=2,ixQ=3                    ! index of variables in data structures
+    character(len=128), parameter    :: f1='pRate', f2='etPond', f3='qSeas'   ! NOTE: exclude quotes
+    ! data structures
+    type(hStruct), allocatable       :: spatialData(:)       ! spatial information
+    type(hStruct), allocatable       :: forcingData(:)       ! forcing information
+    integer(i4b)                     :: nBasins              ! number of basins
+    integer(i4b)                     :: nTime                ! number of time steps
+    ! error control
+    integer(i4b)                     :: ierr                 ! error code
+    character(len=256)               :: cmessage             ! error message for downwind routine
+    ! program starts here
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !read inputs
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! read depressions spatial properties
-    fName = 'SCRB_1subbasin_depressions_info.csv'
-    nlines = GetNumberOfLines(fName) !get number of lines (number of basins in file)
-    nbasin = nlines - 1
-!    write(*,*) nlines
-    allocate(depressionArea(nbasin), depressionVol(nbasin), catchmentArea(nbasin), upslopeArea(nbasin))
-    !read file
-    open(unit=1, file=trim(fName), status='old', action='read')
-    read(1,*) !trash !skip header line
-    do ibasin = 1, nbasin
-!        write(*,*)i
-        ! subbasinID	depression_area_m2	depression_volume_m3	total_catchment_m2
-        read(1,*) dummy, depressionArea(ibasin), depressionVol(ibasin), catchmentArea(ibasin)
-        !calculate the upslope (upland) area of each depression
-        upslopeArea(ibasin) = max(catchmentArea(ibasin) - depressionArea (ibasin), zero )
-    end do !loop for subbasin
-    close(1)
-!    write(*,*) depressionArea, depressionVol, catchmentArea, upslopeArea
-    allocate(conArea(nbasin), volFrac(nbasin), areaFrac(nbasin), pondVol(nbasin), vMin(nbasin))
+    ! ----- initialize --------------------------------------------------------------------------------------------
 
-    !read synthetic forcings
-    fName = 'syntheticForcing.csv'
-    nlines = GetNumberOfLines(fName) !get number of lines (number of depressions in file)
-    ntimesteps = nlines - 1
-    allocate(qSeas(ntimesteps), pRate(ntimesteps), etPond(ntimesteps))
-    !read file
-    open(unit=1, file=trim(fName), status='old', action='read')
-    read(1,*) ! trash !skip header line
-    do itime = 1, ntimesteps
-!        write(*,*)i
-        ! t	qSeas	pRate	etPond
-        read(1,*) dummy, qSeas(itime), pRate(itime), etPond(itime) !all in mm/day
-    end do !loop for time
-    dt = one  !time steps in days (based on the synthetic data)
-    close(1)
+    ! define filenames
+    fName_spatial = 'SCRB_1subbasin_depressions_info.csv'
+    fName_forcing = 'syntheticForcing.csv'
 
-    ! define parameters (for SCRB)
-    p   = 1.72  ! shape of the slope profile [-]
-    b   = 1.5   ! shape of the fractional contributing area curve [-]
-    tau = 0.01_rkind  ! time constant linear reservoir [days-1]
-    vMin(:) = zero  ! model parameter, will be updated later
-    ! initialize pond volume using ET (set to zero to initialize using volume fraction)
-    totEvap = zero  ! m
-    !initialize variables (all variables will be updated by the model)
-    volFrac = 0.2 ! assume depressions are 20% full at time = 0 (initial condition)
-    conArea = 0.2 ! assume contributing area is 20% at time = 0 (initial condition)
-    areaFrac = 0.2 ! assume areafrac 20% at time = 0 (initial condition)
-    pondVol = zero  !updated inside the initialization subroutine
+    ! read the spatial csv file
+    call read_csv(fName_spatial,                    & ! input file name
+                  [ixCatArea, ixDepArea, ixDepVol], & ! index of desired variable in data structure
+                  [s1       , s2       , s3      ], & ! names of desired variables
+                  spatialData, nBasins,             & ! populated data structures
+                  ierr, cMessage)                     ! error control
+    call handle_err(ierr, cMessage)
 
-    !conArea = dblarr(nDepressions) at time = 0 (initial condition)
-    !loop though subbasins to initialize the variables
-    do ibasin = 1, nbasin
+    ! read the forcing csv file
+    call read_csv(fName_forcing,                    & ! input file name
+                  [ixP, ixET, ixQ],                 & ! index of desired variable in data structure
+                  [f1 , f2  , f3 ],                 & ! names of desired variables
+                  forcingData, nTime,               & ! populated data structures
+                  ierr, cMessage)                     ! error control
+    call handle_err(ierr, cMessage)
+
+    ! check
+    print *, 'nBasins = ', nBasins, 'nTimesteps = ', nTime
+
+    ! ----- run HDS -----------------------------------------------------------------------------------------------
+
+    ! run the HDS model
+    call run_HDS(nBasins, nTime,                                                                    & ! space/time dimensions
+                 spatialData(ixCatArea)%dat, spatialData(ixDepArea)%dat, spatialData(ixDepVol)%dat, & ! spatial information
+                 forcingData(ixP)%dat, forcingData(ixET)%dat, forcingData(ixQ)%dat,                 & ! forcing information
+                 ierr, cMessage)                                                                      ! error control
+    call handle_err(ierr, cMessage)
+
+    ! ----- finalize ----------------------------------------------------------------------------------------------
+
+
+
+end program
+
+! =========================================================================
+! * subroutine to run HDS
+! =========================================================================
+
+subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time dimensions
+                   catchmentArea, depressionArea, depressionVol, & ! spatial information
+                   pRate, etPond, qSeas,                         & ! forcing information
+                   ierr, message)                                  ! error control
+
+    USE type_HDS
+    USE HDS
+
+    implicit none
+    ! input/output
+    integer(i4b), intent(in)  :: nBasins, nTimesteps      ! number of sub-basins and timesteps included in the analysis
+    real(rkind),  intent(in)  :: catchmentArea(nBasins)   ! catchment area of the depression in m^2
+    real(rkind),  intent(in)  :: depressionArea(nBasins)  ! depression area in m^2
+    real(rkind),  intent(in)  :: depressionVol(nBasins)   ! depression volume in m^3
+    real(rkind),  intent(in)  :: pRate(nTimesteps)        ! forcing data = precipitation [mm/day]
+    real(rkind),  intent(in)  :: etPond(nTimesteps)       ! forcing data = ET            [mm/day]
+    real(rkind),  intent(in)  :: qSeas(nTimesteps)        ! forcing data = runoff        [mm/day]
+    integer(i4b),intent(out)  :: ierr                     ! error code
+    character(*),intent(out)  :: message                  ! error message
+    ! local variables -- parameters
+    real(rkind), parameter    :: p   = 1.72_rkind         ! shape of the slope profile [-]
+    real(rkind), parameter    :: b   = 1.5_rkind          ! shape of the fractional contributing area curve [-]
+    real(rkind), parameter    :: tau = 0.01_rkind         ! time constant linear reservoir [days-1]
+    real(rkind), parameter    :: dt  = 1.0_rkind          ! time step [days]
+    ! local variables
+    integer(i4b)              :: ibasin, itime            ! loop counter for basin and timeseries
+    real(rkind)               :: upslopeArea(nBasins)     ! upslope (upland) area of the depression in m^2 = catchmentArea - depressionArea
+    real(rkind)               :: vMin(nBasins)            ! minimum pond volume below which contributing area is zero [m3]
+    real(rkind)               :: conArea(nBasins)         ! contributing area fraction per subbasin [-]
+    real(rkind)               :: volFrac(nBasins)         ! volume fraction per subbasin [-]
+    real(rkind)               :: areaFrac(nBasins)        ! area fraction per subbasin [-]
+    real(rkind)               :: pondVol(nBasins)         ! pond volume [m3] [-]
+    real(rkind)               :: totEvap                  ! total evaporation for initialization of the pond [m]
+    real(rkind)               :: pondVol0                 ! initial and final pond volume [m3]
+    ! initialize error control
+    ierr=0; message='run_HDS/'
+
+    !===============================
+    ! initialization
+    !===============================
+
+    ! initial assignments
+    upslopeArea = max(catchmentArea - depressionArea, zero)
+    vMin(:)     = zero       ! time varying model parameter, will be updated later
+    totEvap     = zero       ! initialize pond volume using ET (set to zero to initialize using volume fraction)
+
+    ! initialize variables (all variables will be updated by the model)
+    volFrac  = 0.2_rkind     ! assume depressions are 20% full at time = 0 (initial condition)
+    conArea  = 0.2_rkind     ! assume contributing area is 20% at time = 0 (initial condition)
+    areaFrac = 0.2_rkind     ! assume areafrac 20% at time = 0 (initial condition)
+    pondVol  = zero          ! updated inside the initialization subroutine
+
+    ! loop though subbasins to initialize the variables
+    do ibasin = 1, nBasins
         call init_pondVolume(depressionArea(ibasin), depressionVol(ibasin), totEvap, volFrac(ibasin), p, pondVol(ibasin))
-        pondVol0 = pondVol(ibasin)
+        pondVol0     = pondVol(ibasin)
         vMin(ibasin) = pondVol(ibasin)
-!        write(*,*) pondVol0, vMin(ibasin)
     enddo ! loop for subbasin initialization
-    ! initialize arrays
-    ! volFrac     = dblarr(nDays)
-    ! areaFrac    = dblarr(nDays)
-    ! volFracPond = dblarr(nDepressions,nDays)
-    !===============================
-    ! create output file
-    !===============================
-    open(unit=10, file='HDS_output.csv', status='unknown', action='write')
 
+    ! create output file and write header
+    open(unit=10, file='HDS_output.csv', status='unknown', action='write')
     write(10,*) 'time, basinID, pondVol, volFrac, conArea, vMin, '
 
     !===============================
     ! start of time loop (timeseries simulation)
     !===============================
-    do itime = 1, ntimesteps
-        ! for each timestep, loop through subbasins
-        write(*,*) 'time step = ', itime
-        do ibasin = 1, nbasin
-            ! run the meta depression model for a single depression
+    do itime = 1, nTimesteps
 
+        ! for each timestep, loop through subbasins
+        do ibasin = 1, nBasins
+
+            ! run the meta depression model for a single depression
             call runDepression(pondVol(ibasin), qSeas(itime), pRate(itime), etPond(itime), depressionArea(ibasin), depressionVol(ibasin), upslopeArea(ibasin), &
                                 p, tau, b, vMin(ibasin), dt, volFrac(ibasin), conArea(ibasin))
 
             ! save information (bookkeeping for next time step)
-            !volFrac(ibasin)       = fVol
-            !conArea(ibasin)      = fArea
-            !volFracPond(ibasin) = pondVol/depVol
+            write(*,*) 'time step = ', itime
             write(10,1110) itime, ibasin, pondVol(ibasin), volFrac(ibasin), conArea(ibasin), vMin(ibasin)
             1110    format(9999(g15.7e2, ','))
 
-        enddo !Loop for subbasin
+        enddo ! loop for subbasin
 
-    enddo !loop for time
+    enddo ! loop for time
 
-    close(10) !close HDS_output file
+    close(10) ! close HDS_output file
+
+end subroutine run_HDS
 
 
-end program
-! ======================================================
-! local functions used for pre/post processing
-! ======================================================
-! get the number of files
-function GetNumberOfLines(filename) result(num_lines)
-    USE type_HDS
-    implicit none
-    character(len=100), intent(in) :: filename
-    integer(i4b)  ::  num_lines, i
-    character(1000) :: line
+! **************************************************************************************************
+! error handler
+! **************************************************************************************************
+subroutine handle_err(ierr,message)
+ USE type_HDS
+ implicit none
+ integer(i4b),intent(in)            :: ierr            ! error code
+ character(*),intent(in)            :: message         ! error message
+ ! ---------------------------------------------------------------------------------------
+ ! return if A-OK
+ if(ierr==0) return
 
-    ! Open the file
-    open(unit=1, file=trim(filename), status='old', action='read', iostat=i)
+    ! process error messages
+    if (ierr>0) then
+     write(*,'(//a/)') 'FATAL ERROR: '//trim(message)
+    else
+     write(*,'(//a/)') 'WARNING: '//trim(message); print*,'(can keep going, but stopping anyway)'
+    endif
+    stop 1
 
-    ! Check if the file was opened successfully
-    if (i /= 0) then
-        write(*, *) "Error opening the file. Check if the file exists"
-        stop
-    end if
-
-    ! Initialize the line counter
-    num_lines = 0
-
-    ! Loop through the file and count the lines
-    do
-        read(1, '(A)', iostat=i) line
-        if (i == 0) then
-            num_lines = num_lines + 1
-        else if (i /= 0 .and. i /= -1) then
-            write(*, *) "Error reading the file."
-            exit
-        else
-            exit
-        end if
-    end do
-
-    ! Close the file
-    close(1)
-
-end function GetNumberOfLines
+end subroutine handle_err
