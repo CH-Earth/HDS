@@ -24,6 +24,7 @@ program main_HDS
     type(hStruct), allocatable       :: forcingData(:)       ! forcing information
     integer(i4b)                     :: nBasins              ! number of basins
     integer(i4b)                     :: nTime                ! number of time steps
+    integer(i4b)                     :: iVar                 ! variable index
     ! error control
     integer(i4b)                     :: ierr                 ! error code
     character(len=256)               :: cmessage             ! error message for downwind routine
@@ -65,7 +66,13 @@ program main_HDS
 
     ! ----- finalize ----------------------------------------------------------------------------------------------
 
-
+    ! deallocate space
+    do iVar=1,3
+     deallocate(spatialData(iVar)%dat, forcingData(iVar)%dat, stat=ierr)
+     call handle_err(ierr,'problem deallocating space for dat vector')
+    end do
+    deallocate(spatialData, forcingData, stat=ierr)
+    call handle_err(ierr,'problem deallocating space for data structures')
 
 end program
 
