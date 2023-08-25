@@ -1,4 +1,6 @@
 module HDS
+USE type_HDS
+
     contains
 
     subroutine init_pondVolume(depArea, depVol, totEvap, volFrac, p, pondVol)
@@ -6,26 +8,26 @@ module HDS
         ! initialize at capacity minus depth of evaporation
         implicit none
         !subroutine arguments
-        real, intent(in) :: depArea !depression area [m2]
-        real, intent(in) :: depVol !depression volume [m3]
-        real, intent(in) :: totEvap ! total evaporation [m] to be subtracted from the ponded water
-        real, intent(in) :: volFrac ! volume fraction [-]. Used to fill the depressions using percentage (i.e., 50% full)
-        real, intent(in) :: p ! shape of the slope profile [-]. Exponent for calculating the fractional wet area
-        real, intent(out) :: pondVol ! pond volume [m3]
+        real(rkind),  intent(in) :: depArea !depression area [m2]
+        real(rkind),  intent(in) :: depVol !depression volume [m3]
+        real(rkind),  intent(in) :: totEvap ! total evaporation [m] to be subtracted from the ponded water
+        real(rkind),  intent(in) :: volFrac ! volume fraction [-]. Used to fill the depressions using percentage (i.e., 50% full)
+        real(rkind),  intent(in) :: p ! shape of the slope profile [-]. Exponent for calculating the fractional wet area
+        real(rkind),  intent(out) :: pondVol ! pond volume [m3]
         ! local variables
-        real :: depHeight ! depression height [m]
-        real :: pondHeight ! height of the water level in depression [m]
+        real(rkind)  ::  depHeight ! depression height [m]
+        real(rkind)  ::  pondHeight ! height of the water level in depression [m]
         ! estimate the maximum depth of the depression
-        depHeight = depVol*(1.0 + 2.0/p)/depArea  ! depression height [m]
+        depHeight = depVol*(1.0_rkind  + 2.0_rkind /p)/depArea  ! depression height [m]
         !ixWater   = where(depHeight gt totEvap, nWater)
         !subtract ET from ponded water if ET > 0
-        if(totEvap .gt. 0.0) then
+        if(totEvap .gt. 0.0_rkind ) then
             ! estimate the height of the water level after evaporation
-            pondHeight = max(depHeight - totEvap, 0.0) !0.0 !replicate(0.d, nDepressions)
+            pondHeight = max(depHeight - totEvap, 0.0_rkind ) !0.0_rkind  !replicate(0.d, nDepressions)
             !if(depHeight gt 0)then pondHeight[ixWater] = depHeight[ixWater] - totEvap
 
             ! get the volume of water in the depression
-            pondVol = depVol*((pondHeight/depHeight)**(1.0 + 2.0/p))
+            pondVol = depVol*((pondHeight/depHeight)**(1.0_rkind  + 2.0_rkind /p))
 
         else !use volume frac to get initial pondVol
             pondVol = depVol*volFrac
@@ -43,19 +45,19 @@ module HDS
                    dt,                       & ! input:         model time step [days]
                    fVol, fArea)                ! output:        fractional volume and fractional contributing area [-]
 
-    
+
         ! used to estimate the volumetric storage at the end of the time interval
         implicit none
         !subroutine arguments
-        real, intent(inout) :: pondVol, vmin               !state variable = pond volume [m3]; vmin [m3] minimum volume
-        real, intent(in)    :: qSeas, pRate, etPond        ! input:         forcing data = runoff, precipitation, ET [mm/day]
-        real, intent(in)    :: depArea, depVol, upsArea    ! input:         spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
-        real, intent(in)    :: p, tau                      ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
-        real, intent(in)    :: b                           ! input:         model parameters = b [-] shape of contributing fraction curve; 
-        real, intent(in)    :: dt                          ! input:         model time step [days]
-        real, intent(out)   :: fVol, fArea                ! output:        fractional volume and fractional contributing area [-]
+        real(rkind),  intent(inout) :: pondVol, vmin               !state variable = pond volume [m3]; vmin [m3] minimum volume
+        real(rkind),  intent(in)    :: qSeas, pRate, etPond        ! input:         forcing data = runoff, precipitation, ET [mm/day]
+        real(rkind),  intent(in)    :: depArea, depVol, upsArea    ! input:         spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
+        real(rkind),  intent(in)    :: p, tau                      ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
+        real(rkind),  intent(in)    :: b                           ! input:         model parameters = b [-] shape of contributing fraction curve;
+        real(rkind),  intent(in)    :: dt                          ! input:         model time step [days]
+        real(rkind),  intent(out)   :: fVol, fArea                ! output:        fractional volume and fractional contributing area [-]
         !local variables
-        real :: vMinNew, pondVolNew                        !new state variable = pond volume [m3]; vmin [m3] minimum volume
+        real(rkind)  ::  vMinNew, pondVolNew                        !new state variable = pond volume [m3]; vmin [m3] minimum volume
         ! return upon failure
         !on_error, 2
 
@@ -66,11 +68,11 @@ module HDS
         !nDepressions = n_elements(pondVol)
 
         ! initilaize the contributing area
-        !conArea = 0.0 !replicate(0.d, nDepressions)
+        !conArea = 0.0_rkind  !replicate(0.d, nDepressions)
 
         ! loop through depressions
         !for iDep=0,nDepressions-1 do begin
-        
+
         ! skip
         !print, iDep
         !if(iDep ne ixDesired)then continue
@@ -86,7 +88,7 @@ module HDS
         !if keyword_set(isMeta) then begin
         call runOnestep(pondVol, qSeas, pRate, etPond, depArea, depVol, upsArea, &
                         p, tau, b, vmin, dt, pondVolNew, vMinNew, fArea)
-        
+
         !endif
 
         ! save variables
@@ -94,7 +96,7 @@ module HDS
         pondVol = pondVolNew
         ! compute fractional volume and fractional area
         fVol  = pondVol/depVol!total(pondVol)/total(depVol)
-        
+
 
         !print, 'fVol = ', pondVol[0:1]/depVol[0:1]
         !print, 'fVolVec = ', pondVol/depVol
@@ -114,24 +116,24 @@ module HDS
 
         implicit none
         !subroutine arguments
-        real, intent(inout) :: pondVol               !state variable = pond volume [m3]
-        real, intent(in)    :: qSeas, pRate, etPond        ! input:         forcing data = runoff, precipitation, ET [mm/day]
-        real, intent(in)    :: depArea, depVol, upsArea    ! input:         spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
-        real, intent(in)    :: p, tau                      ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
-        real, intent(in)    :: b, vMinOld                  ! input:         model parameters = b [-] shape of contributing fraction curve; vminold [m3] minimum volume
-        real, intent(in)    :: dt                          ! input:         model time step [days]
-        real, intent(out)   :: xVol, vMin, fArea           !output: pond volume at the end of the time step [m3], fractional contributing area [-]
+        real(rkind),  intent(inout) :: pondVol               !state variable = pond volume [m3]
+        real(rkind),  intent(in)    :: qSeas, pRate, etPond        ! input:         forcing data = runoff, precipitation, ET [mm/day]
+        real(rkind),  intent(in)    :: depArea, depVol, upsArea    ! input:         spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
+        real(rkind),  intent(in)    :: p, tau                      ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
+        real(rkind),  intent(in)    :: b, vMinOld                  ! input:         model parameters = b [-] shape of contributing fraction curve; vminold [m3] minimum volume
+        real(rkind),  intent(in)    :: dt                          ! input:         model time step [days]
+        real(rkind),  intent(out)   :: xVol, vMin, fArea           !output: pond volume at the end of the time step [m3], fractional contributing area [-]
         !local variables
         integer :: implicitEuler, shortSubsteps, solution ! flags to activate the required solution
-        real :: xConv ! convergence criteria (algorithm control parameter)
+        real(rkind)  ::  xConv ! convergence criteria (algorithm control parameter)
         integer :: nIter, iter ! number of iterations (algorithm control parameter), iteration counter
         integer :: nSub ! number of substeps (algorithm control parameter)
-        real :: xMin, xMax ! min and max storage
-        real :: Q_di, Q_det, Q_dix, Q_do !fluxes [L3 T-1]: sum of water inputs to the pond, evapotranspiration, infiltration, pond outflow
-        real :: cFrac, g, dgdv !contributing fraction, net fluxes and derivative
-        real :: xRes !residual
+        real(rkind)  ::  xMin, xMax ! min and max storage
+        real(rkind)  ::  Q_di, Q_det, Q_dix, Q_do !fluxes [L3 T-1]: sum of water inputs to the pond, evapotranspiration, infiltration, pond outflow
+        real(rkind)  ::  cFrac, g, dgdv !contributing fraction, net fluxes and derivative
+        real(rkind)  ::  xRes !residual
         integer :: failure !failure flag
-        real :: dtSub !dt for shortSubsteps solution
+        real(rkind)  ::  dtSub !dt for shortSubsteps solution
         integer :: iSub !counter for shortSubsteps solution
         ! define numerical options
         implicitEuler = 1001
@@ -154,7 +156,7 @@ module HDS
         if(solution .eq. implicitEuler)then
 
             ! initialize brackets
-            xMin = 0.0
+            xMin = 0.0_rkind
             xMax = depVol
             !if keyword_set(isMeta)     then xMax = depVol
             !if keyword_set(isEnsemble) then xMax = depVol*10.d ! the ensemble model computes an intermediate solution without spill
@@ -167,10 +169,10 @@ module HDS
                 !if keyword_set(isMeta)     then computFlux, iter, xVol, qSeas, pRate, etPond, depArea, depVol, upsArea, p, tau, b, vMin, Q_di, Q_det, Q_dix, Q_do, cFrac, g, dgdv, /meta
                 !if keyword_set(isEnsemble) then computFlux, iter, xVol, qSeas, pRate, etPond, depArea, depVol, upsArea, p, tau, b, vMin, Q_di, Q_det, Q_dix, Q_do, cFrac, g, dgdv, /ensemble
                 !print, g, dgdv
-                
+
                 ! compute residual
                 xRes = (pondVol + g*dt) - xVol
-                
+
                 ! check convergence
                 if(iter .gt. 1 .and. abs(xRes) .lt. xConv)then
                     failure=0
@@ -178,19 +180,19 @@ module HDS
                 endif
 
                 ! update constraints
-                if(xRes .gt. 0.0) xMin=xVol
-                if(xRes .lt. 0.0) xMax=xVol
+                if(xRes .gt. 0.0_rkind ) xMin=xVol
+                if(xRes .lt. 0.0_rkind ) xMax=xVol
 
                 ! special case where xMax is too small
-                if(xRes .gt. 0.0 .and. xVol .gt. 0.99*xMax) xMax = xMax*10.0
+                if(xRes .gt. 0.0_rkind  .and. xVol .gt. 0.99*xMax) xMax = xMax*10.0_rkind
 
                 ! update state (pondVol)
-                xVol = xVol + xRes / (1.0 - dgdv*dt)
-                
+                xVol = xVol + xRes / (1.0_rkind  - dgdv*dt)
+
                 ! use bi-section if violated constraints
-                if(xVol .lt. xMin .or. xVol .gt. xMax) xVol=(xMin+xMax)/2.0
-                !if(xVol /= xVol) xVol = 0.0 !NaN check MIA (does not work)
-                !xVol = max(xVol, 0.0) !prevent -ve values of xVol
+                if(xVol .lt. xMin .or. xVol .gt. xMax) xVol=(xMin+xMax)/2.0_rkind
+                !if(xVol /= xVol) xVol = 0.0_rkind  !NaN check MIA (does not work)
+                !xVol = max(xVol, 0.0_rkind ) !prevent -ve values of xVol
                 !print, iter, pondVol, xVol, depArea, depVol, Q_di, Q_det, Q_dix, Q_do, xRes, xMin, xMax
 
                 ! assign failure
@@ -206,7 +208,7 @@ module HDS
         if(solution .eq. shortSubsteps .or. failure .eq. 1)then
 
             ! define length of the substeps
-            dtSub = 1.0 / real(nSub)
+            dtSub = 1.0_rkind  / real(nSub)
 
             ! loop through substeps
             do iSub=1,nSub
@@ -223,7 +225,7 @@ module HDS
         ! ---------------------------------------------------------------------------------
         ! ---------------------------------------------------------------------------------
         ! ---------- fill and spill process for the meta depression model -----------------
-        fArea = cFrac 
+        fArea = cFrac
         ! ---------------------------------------------------------------------------------
 
 
@@ -238,40 +240,40 @@ module HDS
                 b, vmin,                   & ! input:  model parameters = b [-] shape of contributing fraction curve; vmin [m3] minimum volume
                 Q_di, Q_det, Q_dix, Q_do,  & ! output: individual model fluxes
                 cFrac, g, dgdv)              ! output: contributing fraction, net fluxes and derivative
-                
+
         implicit none
         ! subroutine arguments
         integer, intent(in) :: iter                     !iteration index
-        real, intent(in) :: pondVol                     !state variable = pond volume [m3]
-        real, intent(in) :: qSeas, pRate, etPond        ! input:  forcing data = runoff, precipitation, ET [mm/day]
-        real, intent(in) :: depArea, depVol, upsArea    ! input:  spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
-        real, intent(in) :: p, tau                      ! input:  model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
-        real, intent(in) :: b                           ! input:  model parameters = b [-] shape of contributing fraction curve; vmin [m3] minimum volume
-        real, intent(inout) :: vmin                     ! in/out: vmin [m3] minimum volume
-        real, intent(out) :: Q_di, Q_det, Q_dix, Q_do   ! output: individual model fluxes
-        real, intent(out) :: cFrac, g, dgdv             ! output: contributing fraction, net fluxes and derivative, pond area
+        real(rkind),  intent(in) :: pondVol                     !state variable = pond volume [m3]
+        real(rkind),  intent(in) :: qSeas, pRate, etPond        ! input:  forcing data = runoff, precipitation, ET [mm/day]
+        real(rkind),  intent(in) :: depArea, depVol, upsArea    ! input:  spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
+        real(rkind),  intent(in) :: p, tau                      ! input:  model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
+        real(rkind),  intent(in) :: b                           ! input:  model parameters = b [-] shape of contributing fraction curve; vmin [m3] minimum volume
+        real(rkind),  intent(inout) :: vmin                     ! in/out: vmin [m3] minimum volume
+        real(rkind),  intent(out) :: Q_di, Q_det, Q_dix, Q_do   ! output: individual model fluxes
+        real(rkind),  intent(out) :: cFrac, g, dgdv             ! output: contributing fraction, net fluxes and derivative, pond area
         ! local variables
-        real :: ms ! smoothing parameter (algorithm control)
-        real :: pondArea ! calculated pond area
-        real :: rCoef    ! runoff coefficient [-]
-        real :: pInput  ! precipitation (or rain+melt) [m/day]
-        real :: qInput  ! surface runoff [m/day]
-        real :: eLosses  ! evaporation losses [m/day]
-        real :: vPrime !smoothed pondVol value for Euler solution
-        real :: vTry ! adjusted pondVol for derivatives calculations
-        real :: dadv, dpdv, dfdv, didv
+        real(rkind)  ::  ms ! smoothing parameter (algorithm control)
+        real(rkind)  ::  pondArea ! calculated pond area
+        real(rkind)  ::  rCoef    ! runoff coefficient [-]
+        real(rkind)  ::  pInput  ! precipitation (or rain+melt) [m/day]
+        real(rkind)  ::  qInput  ! surface runoff [m/day]
+        real(rkind)  ::  eLosses  ! evaporation losses [m/day]
+        real(rkind)  ::  vPrime !smoothed pondVol value for Euler solution
+        real(rkind)  ::  vTry ! adjusted pondVol for derivatives calculations
+        real(rkind)  ::  dadv, dpdv, dfdv, didv
 
         ! define algorithmic control parameters
-        ms = 0.0001
+        ms = 0.0001_rkind
 
         ! compute the pond area
-        pondArea = depArea*((pondVol/depVol)**(2.0/(p + 2.0)))
+        pondArea = depArea*((pondVol/depVol)**(2.0_rkind /(p + 2.0_rkind )))
 
         ! get the forcing
-        rCoef   = 0.050 ! (runoff coefficient)
-        pInput  = pRate/1000.0 !mm -> m
-        qInput  = qSeas/1000.0 + rCoef*pRate/1000.0 ! surface runoff !mm -> m
-        eLosses = etPond/1000.0 ! evaporation losses mm -> m
+        rCoef   = 0.050_rkind ! (runoff coefficient)
+        pInput  = pRate/1000.0_rkind  !mm -> m
+        qInput  = qSeas/1000.0_rkind  + rCoef*pRate/1000.0_rkind  ! surface runoff !mm -> m
+        eLosses = etPond/1000.0_rkind  ! evaporation losses mm -> m
 
         ! get volume fluxes from the host land model
         ! sum of water input to the depression (eq 11)
@@ -289,28 +291,28 @@ module HDS
 
         ! compute the outflow from the meta depression
         ! smoothing pondVol calculation ! (eq 24)
-        vPrime = 0.50*(vMin + pondVol + sqrt((pondVol-vMin)**2.0 + ms)) ! (eq 24)
+        vPrime = 0.50*(vMin + pondVol + sqrt((pondVol-vMin)**2.0_rkind  + ms)) ! (eq 24)
         ! calculate contributing fraction !(eq 25)
-        cFrac  = 1.0 - ((depVol - vPrime)/(depVol - vMin))**b !(eq 25)
-        cFrac = max(cFrac, 0.0) !prevent -ve values MIA
+        cFrac  = 1.0_rkind  - ((depVol - vPrime)/(depVol - vMin))**b !(eq 25)
+        cFrac = max(cFrac, 0.0_rkind ) !prevent -ve values MIA
         ! calculate outlfow (eq 16)
         Q_do   = cFrac*Q_di
 
         ! compute the net flux (eq 10)
         g = Q_di - Q_det - Q_dix - Q_do
-        
+
         ! compute derivate in pond area w.r.t. pond volume
-        vTry = max(1.0e-12, pondVol)  ! avoid divide by zero
-        dadv = ((2.0*depArea)/((p + 2.0)*depVol)) * ((vTry/depVol)**(-p/(p + 2.0)))
+        vTry = max(1.0e-12_rkind, pondVol)  ! avoid divide by zero
+        dadv = ((2.0_rkind *depArea)/((p + 2.0_rkind )*depVol)) * ((vTry/depVol)**(-p/(p + 2.0_rkind )))
 
         ! compute derivatives in volume fluxes w.r.t. pond volume (meta depression)
-        dpdv = 0.50*((pondVol-vMin)/sqrt((pondVol-vMin)**2.0 + ms) + 1.0)  ! max smoother
-        dfdv = dpdv*(b*(depVol - pondVol)**(b - 1.0))/((depVol - vMin)**b)  ! contributing fraction (note chain rule)
+        dpdv = 0.50*((pondVol-vMin)/sqrt((pondVol-vMin)**2.0_rkind  + ms) + 1.0_rkind )  ! max smoother
+        dfdv = dpdv*(b*(depVol - pondVol)**(b - 1.0_rkind ))/((depVol - vMin)**b)  ! contributing fraction (note chain rule)
         didv = dadv*(pInput - qInput)
-        dgdv = didv*(1.0 - cFrac) - dfdv*Q_di - dadv*eLosses - tau
+        dgdv = didv*(1.0_rkind  - cFrac) - dfdv*Q_di - dadv*eLosses - tau
 
         !write(*,*) g, pondVol, dadv, dpdv, dfdv, didv, dgdv
-        
+
     end subroutine computFlux
 
 end module HDS

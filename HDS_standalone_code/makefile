@@ -6,6 +6,7 @@ RELEASE_FCFLAGS = -O3
 
 # Source files
 hds_src= \
+		type_HDS.f90 \
         HDS.f90
 
 # model driver
