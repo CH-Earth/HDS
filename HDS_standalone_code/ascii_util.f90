@@ -77,7 +77,7 @@ contains
  ! read data
  do iLine=1,nLines
   read(unt,*) (lineData(iVar), iVar=1,nWords)
-  forall(iVar=1:nVar) xData(iVar)%dat(iLine) = lineData(jxVec(iVar))
+  forall(iVar=1:nVar) xData(ixVec(iVar))%dat(iLine) = lineData(jxVec(iVar))
  end do
 
  ! close csv file
