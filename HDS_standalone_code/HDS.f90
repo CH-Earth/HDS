@@ -169,7 +169,7 @@ USE type_HDS
         if(solution == shortSubsteps .or. failure)then
 
             ! define length of the substeps
-            dtSub = one  / real(nSub)
+            dtSub = one  / real(nSub, kind(rkind))
 
             ! loop through substeps
             do iSub=1,nSub
