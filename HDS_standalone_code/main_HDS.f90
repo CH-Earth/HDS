@@ -89,7 +89,7 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
     USE HDS
 
     implicit none
-    ! input/output
+    ! input/output of the subroutine
     integer(i4b), intent(in)  :: nBasins, nTimesteps      ! number of sub-basins and timesteps included in the analysis
     real(rkind),  intent(in)  :: catchmentArea(nBasins)   ! catchment area of the depression in m^2
     real(rkind),  intent(in)  :: depressionArea(nBasins)  ! depression area in m^2
@@ -110,10 +110,9 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
     real(rkind)               :: vMin(nBasins)            ! minimum pond volume below which contributing area is zero [m3]
     real(rkind)               :: conArea(nBasins)         ! contributing area fraction per subbasin [-]
     real(rkind)               :: volFrac(nBasins)         ! volume fraction per subbasin [-]
-    real(rkind)               :: areaFrac(nBasins)        ! area fraction per subbasin [-]
-    real(rkind)               :: pondVol(nBasins)         ! pond volume [m3] [-]
+    real(rkind)               :: pondVol(nBasins)         ! pond volume [m3]
+    real(rkind)               :: pondArea(nBasins)        ! pond area [m2] 
     real(rkind)               :: totEvap                  ! total evaporation for initialization of the pond [m]
-    real(rkind)               :: pondVol0                 ! initial and final pond volume [m3]
     ! initialize error control
     ierr=0; message='run_HDS/'
 
@@ -129,19 +128,19 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
     ! initialize variables (all variables will be updated by the model)
     volFrac  = 0.2_rkind     ! assume depressions are 20% full at time = 0 (initial condition)
     conArea  = 0.2_rkind     ! assume contributing area is 20% at time = 0 (initial condition)
-    areaFrac = 0.2_rkind     ! assume areafrac 20% at time = 0 (initial condition)
+    !areaFrac = 0.2_rkind     ! assume areafrac 20% at time = 0 (initial condition)
+    pondArea = zero          ! updated inside the initialization subroutine
     pondVol  = zero          ! updated inside the initialization subroutine
 
     ! loop though subbasins to initialize the variables
     do ibasin = 1, nBasins
-        call init_pondVolume(depressionArea(ibasin), depressionVol(ibasin), totEvap, volFrac(ibasin), p, pondVol(ibasin))
-        pondVol0     = pondVol(ibasin)
+        call init_pond_Area_Volume(depressionArea(ibasin), depressionVol(ibasin), totEvap, volFrac(ibasin), p, pondVol(ibasin), pondArea(ibasin))
         vMin(ibasin) = pondVol(ibasin)
     enddo ! loop for subbasin initialization
 
     ! create output file and write header
     open(unit=10, file='HDS_output.csv', status='unknown', action='write')
-    write(10,*) 'time, basinID, pondVol, volFrac, conArea, vMin, '
+    write(10,*) 'time, basinID, pondVol, volFrac, conArea, vMin, pondArea,'
 
     !===============================
     ! start of time loop (timeseries simulation)
@@ -153,11 +152,11 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
 
             ! run the meta depression model for a single depression
             call runDepression(pondVol(ibasin), qSeas(itime), pRate(itime), etPond(itime), depressionArea(ibasin), depressionVol(ibasin), upslopeArea(ibasin), &
-                                p, tau, b, vMin(ibasin), dt, volFrac(ibasin), conArea(ibasin))
+                                p, tau, b, vMin(ibasin), dt, volFrac(ibasin), conArea(ibasin), pondArea(ibasin))
 
             ! save information (bookkeeping for next time step)
             write(*,*) 'time step = ', itime
-            write(10,1110) itime, ibasin, pondVol(ibasin), volFrac(ibasin), conArea(ibasin), vMin(ibasin)
+            write(10,1110) itime, ibasin, pondVol(ibasin), volFrac(ibasin), conArea(ibasin), vMin(ibasin), pondArea(ibasin)
             1110    format(9999(g15.7e2, ','))
 
         enddo ! loop for subbasin
