@@ -6,7 +6,7 @@ The [original HDS (v1)](https://github.com/UC-HAL/HYPE-HDS) was based on the equ
 # Change log:
 Changes are sorted from newest to oldest:
 ## 3rd commit (Sep 1, 2023)
-2. produce the outflow as an output timeseries.
+1. produce the outflow as an output timeseries.
 
 ## 2nd commit (Aug 30, 2023)
 1. simplify code to combine `runDepression` and `runOnestep` into one subroutine `runDepression` and remove `runOnestep`.
