@@ -112,6 +112,7 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
     real(rkind)               :: volFrac(nBasins)         ! volume fraction per subbasin [-]
     real(rkind)               :: pondVol(nBasins)         ! pond volume [m3]
     real(rkind)               :: pondArea(nBasins)        ! pond area [m2] 
+    real(rkind)               :: pondOutflow              ! pond outflow [m3]
     real(rkind)               :: totEvap                  ! total evaporation for initialization of the pond [m]
     ! initialize error control
     ierr=0; message='run_HDS/'
@@ -140,7 +141,7 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
 
     ! create output file and write header
     open(unit=10, file='HDS_output.csv', status='unknown', action='write')
-    write(10,*) 'time, basinID, pondVol, volFrac, conArea, vMin, pondArea,'
+    write(10,*) 'time, basinID, pondVol, volFrac, conArea, vMin, pondArea, pondOutflow,'
 
     !===============================
     ! start of time loop (timeseries simulation)
@@ -152,11 +153,11 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
 
             ! run the meta depression model for a single depression
             call runDepression(pondVol(ibasin), qSeas(itime), pRate(itime), etPond(itime), depressionArea(ibasin), depressionVol(ibasin), upslopeArea(ibasin), &
-                                p, tau, b, vMin(ibasin), dt, volFrac(ibasin), conArea(ibasin), pondArea(ibasin))
+                                p, tau, b, vMin(ibasin), dt, volFrac(ibasin), conArea(ibasin), pondArea(ibasin), pondOutflow)
 
             ! save information (bookkeeping for next time step)
             write(*,*) 'time step = ', itime
-            write(10,1110) itime, ibasin, pondVol(ibasin), volFrac(ibasin), conArea(ibasin), vMin(ibasin), pondArea(ibasin)
+            write(10,1110) itime, ibasin, pondVol(ibasin), volFrac(ibasin), conArea(ibasin), vMin(ibasin), pondArea(ibasin), pondOutflow
             1110    format(9999(g15.7e2, ','))
 
         enddo ! loop for subbasin

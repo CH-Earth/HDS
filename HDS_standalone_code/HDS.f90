@@ -41,13 +41,14 @@ module HDS
 
     !=============================================================
     !=============================================================
-    subroutine runDepression(pondVol,                  & ! input/output:  state variable = pond volume [m3]
-                             qSeas, pRate, etPond,     & ! input:         forcing data = runoff, precipitation, ET [mm/day]
-                             depArea, depVol, upsArea, & ! input:         spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
-                             p, tau,                   & ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
-                             b, vmin,                  & ! input:         model parameters = b [-] shape of contributing fraction curve; vmin [m3] minimum volume
-                             dt,                       & ! input:         model time step [days]
-                             fVol, fArea, pondArea)      ! output:        fractional volume [-], fractional contributing area [-], pond area at the end of the time step [m2]
+    subroutine runDepression(pondVol,                  &       ! input/output:  state variable = pond volume [m3]
+                             qSeas, pRate, etPond,     &       ! input:         forcing data = runoff, precipitation, ET [mm/day]
+                             depArea, depVol, upsArea, &       ! input:         spatial attributes = depression area [m2], depression volume [m3], upstream area [m2]
+                             p, tau,                   &       ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
+                             b, vmin,                  &       ! input:         model parameters = b [-] shape of contributing fraction curve; vmin [m3] minimum volume
+                             dt,                       &       ! input:         model time step [days]
+                             fVol, fArea,              &       ! output:        fractional volume [-], fractional contributing area [-]
+                             pondArea, pondOutflow)            ! output:        pond area at the end of the time step [m2], pond outflow [m3]
 
 
         ! Estimate the volumetric storage at the end of the time interval using the numerical solution
@@ -59,7 +60,8 @@ module HDS
         real(rkind),  intent(in)    :: p, tau                      ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
         real(rkind),  intent(in)    :: b                           ! input:         model parameters = b [-] shape of contributing fraction curve; vminold [m3] minimum volume
         real(rkind),  intent(in)    :: dt                          ! input:         model time step [days]
-        real(rkind),  intent(out)   :: fVol, fArea, pondArea       ! output:        fractional volume [-], fractional contributing area [-], pond area at the end of the time step [m2]
+        real(rkind),  intent(out)   :: fVol, fArea                 ! output:        fractional volume [-], fractional contributing area [-]
+        real(rkind),  intent(out)   :: pondArea, pondOutflow       ! output:        pond area at the end of the time step [m2]
         ! local variables -- model decisions
         integer(i4b), parameter     :: implicitEuler=1001          ! named variable for the implicit Euler solution
         integer(i4b), parameter     :: shortSubsteps=1002          ! named variable for the short substeps solution
@@ -158,6 +160,8 @@ module HDS
         fVol  = pondVol/depVol
         ! compute the pond area at the end of the time step
         pondArea = depArea*((pondVol/depVol)**(two/(p + two)))
+        ! pond outflow [m3]
+        pondOutflow = Q_do
     end subroutine runDepression
 
     !=============================================================

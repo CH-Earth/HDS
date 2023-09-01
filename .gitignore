@@ -3,43 +3,14 @@
 #except the following
 #readme file
 !README.md
-# HDS_standalone folder
+# HDSv2_standalone folder
 !HDS_standalone_code/*.f90
 !HDS_standalone_code/makefile
 !HDS_standalone_code/SCRB_1subbasin_depressions_info.csv
 !HDS_standalone_code/syntheticForcing.csv
 !HDS_standalone_code/HDS_output.csv
 
-
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# HDSv1_standalone folder
+#!HDSv1_standalone_code/*.f90
+#!HDSv1_standalone_code/*.csv
+#!HDSv1_standalone_code/makefile

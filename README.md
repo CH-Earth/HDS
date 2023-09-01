@@ -5,6 +5,10 @@ The [original HDS (v1)](https://github.com/UC-HAL/HYPE-HDS) was based on the equ
 
 # Change log:
 Changes are sorted from newest to oldest:
+## 3rd commit
+1. add the old HDS (v1) code to the repository and do the needed modifications to make it read the synthetic inputs from the CS2002 paper.
+2. produce the outflow as an output timeseries.
+
 ## 2nd commit (Aug 30, 2023)
 1. simplify code to combine `runDepression` and `runOnestep` into one subroutine `runDepression` and remove `runOnestep`.
 2. Produce the pond area as an output timeseries.
