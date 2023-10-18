@@ -5,8 +5,10 @@ The [original HDS (v1)](https://github.com/UC-HAL/HYPE-HDS) was based on the equ
 
 # Change log:
 Changes are sorted from newest to oldest:
+## 4th commit (Oct 18, 2023)
+* add if statements to prevent negative pondVol values under extremely dry conditions
 ## 3rd commit (Sep 1, 2023)
-1. produce the outflow as an output timeseries.
+* produce the outflow as an output timeseries.
 
 ## 2nd commit (Aug 30, 2023)
 1. simplify code to combine `runDepression` and `runOnestep` into one subroutine `runDepression` and remove `runOnestep`.
