@@ -144,6 +144,13 @@ module HDS
             do iSub=1,nSub
                 call computFlux(iter, xVol, qSeas, pRate, etPond, depArea, depVol, upsArea, p, tau, b, vMin, Q_di, Q_det, Q_dix, Q_do, cFrac, g, dgdv)
                 xVol = xVol + g*dtSub
+                ! if xVol is -ve, the code produces NaNs
+                ! prevent -ve ponVol values to avoid nans
+                if(xVol < zero)then
+                    xVol = zero
+                    !break the loop as there's no need to continue xvol<zero
+                    exit
+                end if
             enddo  ! looping through substeps
 
         endif  ! if short substeps
@@ -195,6 +202,8 @@ module HDS
         real(rkind)                 ::  vTry                       ! adjusted pondVol for derivatives calculations
         real(rkind)                 ::  dadv, dpdv, dfdv, didv     ! derivatives
 
+        ! prevent -ve ponVol values to avoid nans
+        ! pondVol = max(pondVol, zero)
         ! compute the pond area
         pondArea = depArea*((pondVol/depVol)**(two/(p + two)))
 
