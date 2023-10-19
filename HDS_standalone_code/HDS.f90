@@ -125,6 +125,12 @@ module HDS
                 ! use bi-section if violated constraints
                 if(xVol < xMin .or. xVol > xMax) xVol=(xMin+xMax)/2.0_rkind
 
+                ! limit xVol to depVol to avoid NaNs !MIA
+                if(xVol>depVol)then
+                    Q_do = Q_do +(xVol-depVol) !add any storage above depVol as outflow
+                    xVol = depVol
+                end if
+
                 ! assign failure
                 failure = (iter == nIter)
 
@@ -230,6 +236,7 @@ module HDS
         ! compute the outflow from the meta depression
         ! smoothing pondVol calculation ! (eq 24)
         vPrime = half*(vMin + pondVol + sqrt((pondVol-vMin)**two  + ms)) ! (eq 24)
+        vPrime = min(vPrime, depVol) !MIA -> limit vPrime to be <= depVol
         ! calculate contributing fraction !(eq 25)
         cFrac  = one  - ((depVol - vPrime)/(depVol - vMin))**b !(eq 25)
         cFrac = max(cFrac, zero ) !prevent -ve values MIA

@@ -5,6 +5,8 @@ The [original HDS (v1)](https://github.com/UC-HAL/HYPE-HDS) was based on the equ
 
 # Change log:
 Changes are sorted from newest to oldest:
+## 5th commit (Oct 19, 2023)
+* add constrains to avoid `pondVol` being greater than `depVol` under extremely wet conditions
 ## 4th commit (Oct 18, 2023)
 * add if statements to prevent negative pondVol values under extremely dry conditions
 ## 3rd commit (Sep 1, 2023)
