@@ -202,8 +202,6 @@ module HDS
         real(rkind)                 ::  vTry                       ! adjusted pondVol for derivatives calculations
         real(rkind)                 ::  dadv, dpdv, dfdv, didv     ! derivatives
 
-        ! prevent -ve ponVol values to avoid nans
-        ! pondVol = max(pondVol, zero)
         ! compute the pond area
         pondArea = depArea*((pondVol/depVol)**(two/(p + two)))
 
