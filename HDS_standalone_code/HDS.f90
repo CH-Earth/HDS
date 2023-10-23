@@ -117,19 +117,13 @@ module HDS
                 if(xRes < zero) xMax=xVol
 
                 ! special case where xMax is too small
-                if(xRes > zero  .and. xVol > 0.99*xMax) xMax = xMax*10.0_rkind
+                if(xRes > zero  .and. xVol > 0.99*xMax) xMax = min(xMax*10.0_rkind, depVol)
 
                 ! update state (pondVol)
                 xVol = xVol + xRes / (one  - dgdv*dt)
 
                 ! use bi-section if violated constraints
                 if(xVol < xMin .or. xVol > xMax) xVol=(xMin+xMax)/2.0_rkind
-
-                ! limit xVol to depVol to avoid NaNs !MIA
-                if(xVol>depVol)then
-                    Q_do = Q_do +(xVol-depVol) !add any storage above depVol as outflow
-                    xVol = depVol
-                end if
 
                 ! assign failure
                 failure = (iter == nIter)
