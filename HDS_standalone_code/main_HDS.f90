@@ -114,6 +114,7 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
     real(rkind)               :: pondArea(nBasins)        ! pond area [m2] 
     real(rkind)               :: pondOutflow              ! pond outflow [m3]
     real(rkind)               :: totEvap                  ! total evaporation for initialization of the pond [m]
+    real(rkind)               :: Q_det_adj, Q_dix_adj     ! adjusted evapotranspiration & infiltration fluxes [L3 T-1] for mass balance closure (i.e., when losses > pondVol). Zero values mean no adjustment needed.
     ! initialize error control
     ierr=0; message='run_HDS/'
 
@@ -153,9 +154,15 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
 
             ! run the meta depression model for a single depression
             call runDepression(pondVol(ibasin), qSeas(itime), pRate(itime), etPond(itime), depressionArea(ibasin), depressionVol(ibasin), upslopeArea(ibasin), &
-                                p, tau, b, vMin(ibasin), dt, volFrac(ibasin), conArea(ibasin), pondArea(ibasin), pondOutflow)
-
-            ! save information (bookkeeping for next time step)
+                                p, tau, b, vMin(ibasin), dt, Q_det_adj, Q_dix_adj, volFrac(ibasin), conArea(ibasin), pondArea(ibasin), pondOutflow)
+            
+                                ! uncomment and impelement the following in the LSM
+            ! if(Q_det_adj>zero .or. Q_dix_adj>zero)then
+                ! assign the new evaporation and infiltration volumes as the Q_det_adj, Q_dix_adj in the LSM
+                ! to ensure mass balance closure
+            ! end if
+            
+                                ! save information (bookkeeping for next time step)
             write(*,*) 'time step = ', itime
             write(10,1110) itime, ibasin, pondVol(ibasin), volFrac(ibasin), conArea(ibasin), vMin(ibasin), pondArea(ibasin), pondOutflow
             1110    format(9999(g15.7e2, ','))

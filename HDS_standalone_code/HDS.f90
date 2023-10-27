@@ -47,6 +47,7 @@ module HDS
                              p, tau,                   &       ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
                              b, vmin,                  &       ! input:         model parameters = b [-] shape of contributing fraction curve; vmin [m3] minimum volume
                              dt,                       &       ! input:         model time step [days]
+                             Q_det_adj, Q_dix_adj,     &       ! output:        adjusted evapotranspiration & infiltration fluxes [L3 T-1] for mass balance closure (i.e., when losses > pondVol)
                              fVol, fArea,              &       ! output:        fractional volume [-], fractional contributing area [-]
                              pondArea, pondOutflow)            ! output:        pond area at the end of the time step [m2], pond outflow [m3]
 
@@ -60,6 +61,7 @@ module HDS
         real(rkind),  intent(in)    :: p, tau                      ! input:         model parameters = p [-] shape of the slope profile; tau [day-1] time constant linear reservoir
         real(rkind),  intent(in)    :: b                           ! input:         model parameters = b [-] shape of contributing fraction curve; vminold [m3] minimum volume
         real(rkind),  intent(in)    :: dt                          ! input:         model time step [days]
+        real(rkind),  intent(out)   :: Q_det_adj, Q_dix_adj        ! output:        adjusted evapotranspiration & infiltration fluxes [L3 T-1] for mass balance closure (i.e., when losses > pondVol). Zero values mean no adjustment needed.
         real(rkind),  intent(out)   :: fVol, fArea                 ! output:        fractional volume [-], fractional contributing area [-]
         real(rkind),  intent(out)   :: pondArea, pondOutflow       ! output:        pond area at the end of the time step [m2]
         ! local variables -- model decisions
@@ -87,6 +89,9 @@ module HDS
 
         ! initialize pond volume
         xVol = pondVol
+        ! initialize corrected evaporation and infiltration for mass balance closure
+        Q_det_adj = zero
+        Q_dix_adj = zero
 
         ! ---------- option 1: implicit Euler ----------
 
@@ -148,6 +153,9 @@ module HDS
                 ! prevent -ve ponVol values to avoid nans
                 if(xVol < zero)then
                     xVol = zero
+                    ! adjust evaporation and infiltration fluxes proprtionally (using weights) to close mass balance (i.e., losses = PondVol)
+                    Q_det_adj = pondVol * (Q_det/(Q_det+Q_dix))
+                    Q_dix_adj = pondVol * (Q_dix/(Q_det+Q_dix))
                     !break the loop as there's no need to continue xvol<zero
                     exit
                 end if
