@@ -5,18 +5,20 @@ The [original HDS (v1)](https://github.com/UC-HAL/HYPE-HDS) was based on the equ
 
 # Change log:
 Changes are sorted from newest to oldest:
-## 5th commit (Oct 19, 2023)
+## Oct 27, 2023
+* Calculate adjusted ET and infiltation for mass balance closure when pond is dry (losses > pondVol)
+## Oct 19, 2023
 * add constrains to avoid `pondVol` being greater than `depVol` under extremely wet conditions
-## 4th commit (Oct 18, 2023)
+## Oct 18, 2023
 * add if statements to prevent negative pondVol values under extremely dry conditions
-## 3rd commit (Sep 1, 2023)
+## Sep 1, 2023
 * produce the outflow as an output timeseries.
 
-## 2nd commit (Aug 30, 2023)
+## Aug 30, 2023
 1. simplify code to combine `runDepression` and `runOnestep` into one subroutine `runDepression` and remove `runOnestep`.
 2. Produce the pond area as an output timeseries.
 3. Remove extra internal variables that are not needed.
 
-## 1st commit (Aug 30, 2023)
+## (Aug 30, 2023
 1. Modify the makefile to activate `release` and `debug` targets. The previous version only used `release` by default as the target and `debug` was not activated.
 2. Fix indentation (space -> tab) in `ascii_util.f90` and `type_HDS.f90`.
