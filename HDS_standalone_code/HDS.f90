@@ -149,13 +149,23 @@ module HDS
             do iSub=1,nSub
                 call computFlux(iter, xVol, qSeas, pRate, etPond, depArea, depVol, upsArea, p, tau, b, vMin, Q_di, Q_det, Q_dix, Q_do, cFrac, g, dgdv)
                 xVol = xVol + g*dtSub
-                ! if xVol is -ve, the code produces NaNs
+
                 ! prevent -ve ponVol values to avoid nans
                 if(xVol < zero)then
                     xVol = zero
                     ! adjust evaporation and infiltration fluxes proprtionally (using weights) to close mass balance (i.e., losses = PondVol)
                     Q_det_adj = pondVol * (Q_det/(Q_det+Q_dix))
                     Q_dix_adj = pondVol * (Q_dix/(Q_det+Q_dix))
+                    !break the loop as there's no need to continue xvol<zero
+                    exit
+                end if
+
+                ! limit xVol to depVol and assign excess volume as outflow
+                if(xVol > depVol)then
+                    cFrac = 1._rkind
+                    ! assign excess water (xVol-depVol) as outflow
+                    Q_do = Q_do + (xVol-depVol)
+                    xVol = depVol
                     !break the loop as there's no need to continue xvol<zero
                     exit
                 end if
@@ -239,7 +249,7 @@ module HDS
         vPrime = min(vPrime, depVol) !MIA -> limit vPrime to be <= depVol
         ! calculate contributing fraction !(eq 25)
         cFrac  = one  - ((depVol - vPrime)/(depVol - vMin))**b !(eq 25)
-        cFrac = max(cFrac, zero ) !prevent -ve values MIA
+        cFrac = max(cFrac, zero ) !prevent -ve values
         ! calculate outlfow (eq 16)
         Q_do   = cFrac*Q_di
 
