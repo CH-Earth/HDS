@@ -1,2 +1,2 @@
-sub_basin,depression_area_m2,depression_volume_m3,total_catchment_m2
-1,84035800,18594986.1076,385052700
+sub_basin,depression_area_m2,depression_volume_m3,total_catchment_m2,depression_b,depression_p
+1,84035800,18594986.11,385052700,1.5,1.72

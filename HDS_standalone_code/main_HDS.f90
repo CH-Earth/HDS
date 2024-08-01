@@ -14,8 +14,8 @@ program main_HDS
     character(len=100)               :: fName_spatial        ! file name that contains depressional storage information
     character(len=100)               :: fName_forcing        ! file name that contains time series inputs
     ! information in the spatial csv file
-    integer(i4b),       parameter    :: ixCatArea=1,ixDepArea=2,ixDepVol=3    ! index of variables in data structures
-    character(len=128), parameter    :: s1='total_catchment_m2', s2='depression_area_m2', s3='depression_volume_m3'
+    integer(i4b),       parameter    :: ixCatArea=1,ixDepArea=2,ixDepVol=3, ixDep_b=4, ixDep_p=5    ! index of variables in data structures
+    character(len=128), parameter    :: s1='total_catchment_m2', s2='depression_area_m2', s3='depression_volume_m3', s4='depression_b', s5='depression_p' ! variable name (header) in the file
     ! information in the forcing csv file
     integer(i4b),       parameter    :: ixP=1,ixET=2,ixQ=3                    ! index of variables in data structures
     character(len=128), parameter    :: f1='pRate', f2='etPond', f3='qSeas'   ! NOTE: exclude quotes
@@ -37,11 +37,11 @@ program main_HDS
     fName_forcing = 'syntheticForcing.csv'
 
     ! read the spatial csv file
-    call read_csv(fName_spatial,                    & ! input file name
-                  [ixCatArea, ixDepArea, ixDepVol], & ! index of desired variable in data structure
-                  [s1       , s2       , s3      ], & ! names of desired variables
-                  spatialData, nBasins,             & ! populated data structures
-                  ierr, cMessage)                     ! error control
+    call read_csv(fName_spatial,                                      & ! input file name
+                  [ixCatArea, ixDepArea, ixDepVol, ixDep_b, ixDep_p], & ! index of desired variable in data structure
+                  [s1       , s2       , s3      , s4     , s5     ], & ! names of desired variables
+                  spatialData, nBasins,                               & ! populated data structures
+                  ierr, cMessage)                                       ! error control
     call handle_err(ierr, cMessage)
 
     ! read the forcing csv file
@@ -60,6 +60,7 @@ program main_HDS
     ! run the HDS model
     call run_HDS(nBasins, nTime,                                                                    & ! space/time dimensions
                  spatialData(ixCatArea)%dat, spatialData(ixDepArea)%dat, spatialData(ixDepVol)%dat, & ! spatial information
+                 spatialData(ixDep_b)%dat, spatialData(ixDep_p)%dat,                                & ! spatial information (cont.)
                  forcingData(ixP)%dat, forcingData(ixET)%dat, forcingData(ixQ)%dat,                 & ! forcing information
                  ierr, cMessage)                                                                      ! error control
     call handle_err(ierr, cMessage)
@@ -80,10 +81,10 @@ end program
 ! * subroutine to run HDS
 ! =========================================================================
 
-subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time dimensions
-                   catchmentArea, depressionArea, depressionVol, & ! spatial information
-                   pRate, etPond, qSeas,                         & ! forcing information
-                   ierr, message)                                  ! error control
+subroutine run_HDS(nBasins, nTimesteps,                                & ! space/time dimensions
+                   catchmentArea, depressionArea, depressionVol, b, p, & ! spatial information
+                   pRate, etPond, qSeas,                               & ! forcing information
+                   ierr, message)                                        ! error control
 
     USE type_HDS
     USE HDS
@@ -94,14 +95,14 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
     real(rkind),  intent(in)  :: catchmentArea(nBasins)   ! catchment area of the depression in m^2
     real(rkind),  intent(in)  :: depressionArea(nBasins)  ! depression area in m^2
     real(rkind),  intent(in)  :: depressionVol(nBasins)   ! depression volume in m^3
+    real(rkind),  intent(in)  :: b(nBasins)               ! shape of the fractional contributing area curve [-]
+    real(rkind),  intent(in)  :: p(nBasins)               ! shape of the slope profile [-]
     real(rkind),  intent(in)  :: pRate(nTimesteps)        ! forcing data = precipitation [mm/day]
     real(rkind),  intent(in)  :: etPond(nTimesteps)       ! forcing data = ET            [mm/day]
     real(rkind),  intent(in)  :: qSeas(nTimesteps)        ! forcing data = runoff        [mm/day]
     integer(i4b),intent(out)  :: ierr                     ! error code
     character(*),intent(out)  :: message                  ! error message
     ! local variables -- parameters
-    real(rkind), parameter    :: p   = 1.72_rkind         ! shape of the slope profile [-]
-    real(rkind), parameter    :: b   = 1.5_rkind          ! shape of the fractional contributing area curve [-]
     real(rkind), parameter    :: tau = 0.01_rkind         ! time constant linear reservoir [days-1]
     real(rkind), parameter    :: dt  = 1.0_rkind          ! time step [days]
     ! local variables
@@ -136,7 +137,7 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
 
     ! loop though subbasins to initialize the variables
     do ibasin = 1, nBasins
-        call init_pond_Area_Volume(depressionArea(ibasin), depressionVol(ibasin), totEvap, volFrac(ibasin), p, pondVol(ibasin), pondArea(ibasin))
+        call init_pond_Area_Volume(depressionArea(ibasin), depressionVol(ibasin), totEvap, volFrac(ibasin), p(ibasin), pondVol(ibasin), pondArea(ibasin))
         vMin(ibasin) = pondVol(ibasin)
     enddo ! loop for subbasin initialization
 
@@ -154,7 +155,7 @@ subroutine run_HDS(nBasins, nTimesteps,                          & ! space/time 
 
             ! run the meta depression model for a single depression
             call runDepression(pondVol(ibasin), qSeas(itime), pRate(itime), etPond(itime), depressionArea(ibasin), depressionVol(ibasin), upslopeArea(ibasin), &
-                                p, tau, b, vMin(ibasin), dt, Q_det_adj, Q_dix_adj, volFrac(ibasin), conArea(ibasin), pondArea(ibasin), pondOutflow)
+                                p(ibasin), tau, b(ibasin), vMin(ibasin), dt, Q_det_adj, Q_dix_adj, volFrac(ibasin), conArea(ibasin), pondArea(ibasin), pondOutflow)
             
                                 ! uncomment and impelement the following in the LSM
             ! if(Q_det_adj>zero .or. Q_dix_adj>zero)then
