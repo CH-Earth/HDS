@@ -27,6 +27,9 @@ Please be aware that the following variables are state variables within the code
 
 # Change log:
 Changes are sorted from newest to oldest:
+## Jul 2024
+* Add a condition to prevent updating vMin if the pond is completely full.
+* add other conditions to limit pondVol to depVol (when completely filled) and assign any excess input as outflow.
 ## Oct 27, 2023
 * Calculate adjusted ET and infiltation for mass balance closure when pond is dry (losses > pondVol)
 ## Oct 19, 2023
