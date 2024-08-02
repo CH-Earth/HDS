@@ -44,6 +44,6 @@ Changes are sorted from newest to oldest:
 2. Produce the pond area as an output timeseries.
 3. Remove extra internal variables that are not needed.
 
-## (Aug 30, 2023
+## Aug 30, 2023
 1. Modify the makefile to activate `release` and `debug` targets. The previous version only used `release` by default as the target and `debug` was not activated.
 2. Fix indentation (space -> tab) in `ascii_util.f90` and `type_HDS.f90`.
