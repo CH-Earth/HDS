@@ -21,12 +21,12 @@ Please be aware that the following variables are state variables within the code
 | variable  | description  |
 |---|---|
 | `vMin`     |          ! minimum pond volume below which contributing area is zero [m<sup>3</sup>] |
-| `conArea`  |          ! contributing area fraction per subbasin [-] |
 | `pondVol`  |          ! pond volume [m<sup>3</sup>] |
-| `pondArea` |          ! pond area [m<sup>2</sup>] |
 
 # Change log:
 Changes are sorted from newest to oldest:
+## Sep 2024
+* add `depCatchAreaFrac` to the code and calculate the integrated `basinConAreaFrac`
 ## Jul 2024
 * Add a condition to prevent updating vMin if the pond is completely full.
 * add other conditions to limit pondVol to depVol (when completely filled) and assign any excess input as outflow.
